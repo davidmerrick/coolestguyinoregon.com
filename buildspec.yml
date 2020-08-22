@@ -3,8 +3,4 @@ version: 0.2
 phases:
   build:
     commands:
-      - echo hello world
-artifacts:
-  files:
-    - "**/*"
-  base-directory: public
+      - aws s3 sync public/ s3://www.coolestguyinoregon.com
