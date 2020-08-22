@@ -1,0 +1,118 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Website for coolestguyinoregon.com",
+    "Parameters": {
+      "ErrorPagePath": {
+        "Description": "Path to error page",
+        "Type": "String",
+        "Default": "/404.html"
+      }
+    },
+    "Resources": {
+      "WebsiteBucket": {
+        "Type": "AWS::S3::Bucket",
+        "Properties": {
+          "BucketName": "www.coolestguyinoregon.com",
+          "WebsiteConfiguration": {
+            "IndexDocument": "index.html",
+            "ErrorDocument": "error.html"
+          },
+          "AccessControl": "PublicRead"
+        },
+        "DeletionPolicy": "Retain"
+      },
+      "ReadPolicy": {
+        "Type": "AWS::S3::BucketPolicy",
+        "Properties": {
+          "Bucket": {
+            "Ref": "WebsiteBucket"
+          },
+          "PolicyDocument": {
+            "Statement": {
+              "Action": "s3:GetObject",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:s3:::",
+                    {
+                      "Ref": "WebsiteBucket"
+                    },
+                    "/*"
+                  ]
+                ]
+              },
+              "Principal": {
+                "CanonicalUser": {
+                  "Fn::GetAtt": [
+                    "CloudFrontOriginAccessIdentity",
+                    "S3CanonicalUserId"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "CloudFrontOriginAccessIdentity": {
+        "Type": "AWS::CloudFront::CloudFrontOriginAccessIdentity",
+        "Properties": {
+          "CloudFrontOriginAccessIdentityConfig": {
+            "Comment": {
+              "Ref": "WebsiteBucket"
+            }
+          }
+        }
+      },
+      "CloudFrontDistribution": {
+        "Type": "AWS::CloudFront::Distribution",
+        "Properties": {
+          "DistributionConfig": {
+            "DefaultCacheBehavior" : {
+              "ViewerProtocolPolicy" : "redirect-to-https",
+              "AllowedMethods" : [ "GET", "HEAD", "OPTIONS" ],
+              "TargetOriginId" : "s3-origin"
+            },
+            "Enabled": true,
+            "CustomErrorResponses": [
+              {
+                "ErrorCode": 403,
+                "ResponseCode": 404,
+                "ResponsePagePath": {
+                  "Ref": "ErrorPagePath"
+                }
+              }
+            ],
+            "DefaultRootObject": "/index.html",
+            "HttpVersion": "http2",
+            "Origins": [
+              {
+                "DomainName": {
+                  "Fn::GetAtt": [
+                    "WebsiteBucket",
+                    "DomainName"
+                  ]
+                },
+                "Id": "s3-origin",
+                "S3OriginConfig": {
+                  "OriginAccessIdentity": {
+                    "Fn::Sub": [
+                      "origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}",
+                      {
+                        "CloudFrontOriginAccessIdentity": {
+                          "Ref": "CloudFrontOriginAccessIdentity"
+                        }
+                      }
+                    ]
+                  }
+                },
+                "OriginPath": "/"
+              }
+            ],
+            "PriceClass": "PriceClass_All"
+          }
+        }
+      }
+    }
+  }
