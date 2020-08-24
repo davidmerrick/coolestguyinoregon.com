@@ -1,0 +1,70 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: CloudFormation templates for plumbing coolestguyinoregon.com
+Parameters:
+  BucketName:
+    Description: Website bucket name
+    Type: String
+    Default: 'www.coolestguyinoregon.com'
+Resources:
+  WebsiteBucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: !Ref BucketName
+      WebsiteConfiguration:
+        IndexDocument: 'index.html'
+        ErrorDocument: 'error.html'
+      AccessControl: PublicRead
+    DeletionPolicy: Retain
+  ReadPolicy:
+    Type: 'AWS::S3::BucketPolicy'
+    Properties:
+      Bucket: !Ref WebsiteBucket
+      PolicyDocument:
+        Statement:
+          Action: 's3:GetObject'
+          Effect: Allow
+          Resource: !Sub 'arn:aws:s3:::${BucketName}/*'
+          Principal: '*'
+  CloudFrontOriginAccessIdentity:
+    Type: 'AWS::CloudFront::CloudFrontOriginAccessIdentity'
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: !Ref WebsiteBucket
+  CloudFrontDistribution:
+    Type: 'AWS::CloudFront::Distribution'
+    Properties:
+      DistributionConfig:
+        DefaultCacheBehavior:
+          ViewerProtocolPolicy: 'redirect-to-https'
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          TargetOriginId: s3Origin
+          Compress: true
+          DefaultTTL: 3600
+          ForwardedValues:
+            Cookies:
+              Forward: none
+            QueryString: false
+        Enabled: true
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 404
+            ResponsePagePath: '/404.html'
+        DefaultRootObject: 'index.html'
+        HttpVersion: http2
+        Origins:
+          - DomainName: !GetAtt 'WebsiteBucket.DomainName'
+            Id: s3Origin
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}'
+        PriceClass: 'PriceClass_All'
+Outputs:
+  Domain:
+    Description: Cloudfront Domain
+    Value: !GetAtt 'CloudFrontDistribution.DomainName'
