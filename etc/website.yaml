@@ -5,6 +5,9 @@ Parameters:
     Description: Website bucket name
     Type: String
     Default: 'www.coolestguyinoregon.com'
+  CertificateArn:
+    Description: ARN for your ACM certificate
+    Type: String
 Resources:
   WebsiteBucket:
     Type: 'AWS::S3::Bucket'
@@ -34,6 +37,11 @@ Resources:
     Type: 'AWS::CloudFront::Distribution'
     Properties:
       DistributionConfig:
+        Aliases:
+          - 'www.coolestguyinoregon.com'
+        ViewerCertificate:
+          AcmCertificateArn: !Ref CertificateArn
+          SslSupportMethod: 'sni-only'
         DefaultCacheBehavior:
           ViewerProtocolPolicy: 'redirect-to-https'
           AllowedMethods:
