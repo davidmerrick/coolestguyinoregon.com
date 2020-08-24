@@ -27,7 +27,8 @@ Resources:
           Action: 's3:GetObject'
           Effect: Allow
           Resource: !Sub 'arn:aws:s3:::${BucketName}/*'
-          Principal: '*'
+          Principal:
+            CanonicalUser: !GetAtt 'CloudFrontOriginAccessIdentity.S3CanonicalUserId'
   CloudFrontOriginAccessIdentity:
     Type: 'AWS::CloudFront::CloudFrontOriginAccessIdentity'
     Properties:
