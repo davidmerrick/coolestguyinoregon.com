@@ -1,18 +1,15 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: CloudFormation templates for plumbing coolestguyinoregon.com
 Parameters:
-  BucketName:
-    Description: Website bucket name
+  DomainName:
+    Description: Website domain name, without www
     Type: String
-    Default: 'www.coolestguyinoregon.com'
-  CertificateArn:
-    Description: ARN for your ACM certificate
-    Type: String
+    Default: 'coolestguyinoregon.com'
 Resources:
   WebsiteBucket:
     Type: 'AWS::S3::Bucket'
     Properties:
-      BucketName: !Ref BucketName
+      BucketName: !Ref 'DomainName'
       WebsiteConfiguration:
         IndexDocument: 'index.html'
         ErrorDocument: 'error.html'
@@ -26,9 +23,14 @@ Resources:
         Statement:
           Action: 's3:GetObject'
           Effect: Allow
-          Resource: !Sub 'arn:aws:s3:::${BucketName}/*'
+          Resource: !Sub 'arn:aws:s3:::${DomainName}/*'
           Principal:
             CanonicalUser: !GetAtt 'CloudFrontOriginAccessIdentity.S3CanonicalUserId'
+  Certificate:
+    Type: 'AWS::CertificateManager::Certificate'
+    Properties:
+      DomainName: !Sub '*.${DomainName}'
+      ValidationMethod: 'DNS'
   CloudFrontOriginAccessIdentity:
     Type: 'AWS::CloudFront::CloudFrontOriginAccessIdentity'
     Properties:
@@ -39,9 +41,9 @@ Resources:
     Properties:
       DistributionConfig:
         Aliases:
-          - 'www.coolestguyinoregon.com'
+          - !Sub 'www.${DomainName}'
         ViewerCertificate:
-          AcmCertificateArn: !Ref CertificateArn
+          AcmCertificateArn: !Ref Certificate
           SslSupportMethod: 'sni-only'
         DefaultCacheBehavior:
           ViewerProtocolPolicy: 'redirect-to-https'

@@ -21,3 +21,4 @@ Manually point your Route 53 hosted zone at the CloudFront distribution.
 - Add Route53 config to CloudFormation template
 - Make bucket private, only allow access from CloudFront
 - Add CloudFormation template for CodePipeline
+- Get bucket permissions in place so CodePipeline can write to it
