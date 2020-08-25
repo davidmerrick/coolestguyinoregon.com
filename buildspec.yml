@@ -3,4 +3,4 @@ version: 0.2
 phases:
   build:
     commands:
-      - aws s3 sync public/ s3://www.coolestguyinoregon.com
+      - aws s3 sync public/ s3://coolestguyinoregon.com
