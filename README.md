@@ -16,3 +16,8 @@ Create a certificate for your domain in the `us-east-1` region.
 Deploy the `etc/website.yaml` CloudFormation template, with your 
 desired bucket name and certificate ARN as input. 
 Manually point your Route 53 hosted zone at the CloudFront distribution.
+
+# Todo
+- Add Route53 config to CloudFormation template
+- Make bucket private, only allow access from CloudFront
+- Add CloudFormation template for CodePipeline
