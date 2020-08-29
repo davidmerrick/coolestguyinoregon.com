@@ -15,6 +15,17 @@ Resources:
         ErrorDocument: 'error.html'
       AccessControl: PublicRead
     DeletionPolicy: Retain
+  RecordSets:
+    Type: 'AWS::Route53::RecordSetGroup'
+    Properties:
+      HostedZoneName: !Join ['', [!Ref 'DomainName', .]]
+      RecordSets:
+      - Name: !Sub 'www.${DomainName}'
+        Type: A
+        AliasTarget:
+          # Hosted Zone ID is always Z2FDTNDATAQYW2 for CloudFront
+          HostedZoneId: Z2FDTNDATAQYW2
+          DNSName: !GetAtt [CloudFrontDistribution, DomainName]
   ReadPolicy:
     Type: 'AWS::S3::BucketPolicy'
     Properties:
