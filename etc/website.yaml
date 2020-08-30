@@ -130,31 +130,31 @@ Resources:
             S3OriginConfig:
               OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}'
         PriceClass: 'PriceClass_All'
-#  CodePipelineArtifactStoreBucket:
-#    Type: 'AWS::S3::Bucket'
-#  CodePipelineArtifactStoreBucketPolicy:
-#    Type: 'AWS::S3::BucketPolicy'
-#    Properties:
-#      Bucket: !Ref CodePipelineArtifactStoreBucket
-#      PolicyDocument:
-#        Version: 2012-10-17
-#        Statement:
-#          - Sid: DenyUnEncryptedObjectUploads
-#            Effect: Deny
-#            Principal: '*'
-#            Action: 's3:PutObject'
-#            Resource: !Sub '${CodePipelineArtifactStoreBucket.Arn}/*'
-#            Condition:
-#              StringNotEquals:
-#                's3:x-amz-server-side-encryption': 'aws:kms'
-#          - Sid: DenyInsecureConnections
-#            Effect: Deny
-#            Principal: '*'
-#            Action: 's3:*'
-#            Resource: !Sub '${CodePipelineArtifactStoreBucket.Arn}/*'
-#            Condition:
-#              Bool:
-#                'aws:SecureTransport': false
+  CodePipelineArtifactStoreBucket:
+    Type: 'AWS::S3::Bucket'
+  CodePipelineArtifactStoreBucketPolicy:
+    Type: 'AWS::S3::BucketPolicy'
+    Properties:
+      Bucket: !Ref CodePipelineArtifactStoreBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: DenyUnEncryptedObjectUploads
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:PutObject'
+            Resource: !Sub '${CodePipelineArtifactStoreBucket.Arn}/*'
+            Condition:
+              StringNotEquals:
+                's3:x-amz-server-side-encryption': 'aws:kms'
+          - Sid: DenyInsecureConnections
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource: !Sub '${CodePipelineArtifactStoreBucket.Arn}/*'
+            Condition:
+              Bool:
+                'aws:SecureTransport': false
 #  AppPipelineWebhook:
 #    Type: 'AWS::CodePipeline::Webhook'
 #    Properties:
@@ -164,7 +164,7 @@ Resources:
 #      Filters:
 #        - JsonPath: $.ref
 #          MatchEquals: 'refs/heads/{Branch}'
-#      TargetPipeline: !Ref AppPipeline
+#      TargetPipeline: !Ref 'AppPipeline'
 #      TargetAction: SourceAction
 #      Name: AppPipelineWebhook
 #      TargetPipelineVersion: !GetAtt 'AppPipeline.Version'
@@ -172,7 +172,7 @@ Resources:
 #  AppPipeline:
 #    Type: 'AWS::CodePipeline::Pipeline'
 #    Properties:
-#      Name: github-events-pipeline
+#      Name: !Ref 'DomainName'
 #      RoleArn: !GetAtt 'CodePipelineServiceRole.Arn'
 #      Stages:
 #        - Name: Source
@@ -183,8 +183,6 @@ Resources:
 #                Owner: ThirdParty
 #                Version: 1
 #                Provider: GitHub
-#              OutputArtifacts:
-#                - Name: SourceOutput
 #              Configuration:
 #                Owner: !Ref GitHubOwner
 #                Repo: !Ref RepositoryName
@@ -192,26 +190,9 @@ Resources:
 #                OAuthToken: '{{resolve:secretsmanager:GitHubSecret}}'
 #                PollForSourceChanges: false
 #              RunOrder: 1
-#              - Name: Build
-#                Actions:
-#                  - Name: BuildAction
-#                    ActionTypeId:
-#                      Category: Build
-#                      Owner: AWS
-#                      Version: 1
-#                      Provider: CodeBuild
-#                    OutputArtifacts:
-#                      - Name: SourceOutput
-#                    Configuration:
-#                      Owner: !Ref GitHubOwner
-#                      Repo: !Ref RepositoryName
-#                      Branch: master
-#                      OAuthToken: '{{resolve:secretsmanager:GitHubSecret}}'
-#                      PollForSourceChanges: false
-#                    RunOrder: 2
 #      ArtifactStore:
 #        Type: S3
-#        Location: !Ref CodePipelineArtifactStoreBucket
+#        Location: !Ref 'CodePipelineArtifactStoreBucket'
   CodePipelineServiceRole:
     Type: 'AWS::IAM::Role'
     Properties:
