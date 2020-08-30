@@ -29,14 +29,14 @@ Resources:
   RecordSets:
     Type: 'AWS::Route53::RecordSetGroup'
     Properties:
-      HostedZoneName: !Join ['', [!Ref 'DomainName', .]]
+      HostedZoneName: !Sub '${DomainName}.'
       RecordSets:
         - Name: !Sub 'www.${DomainName}'
           Type: A
           AliasTarget:
             # Hosted Zone ID is always Z2FDTNDATAQYW2 for CloudFront
             HostedZoneId: Z2FDTNDATAQYW2
-            DNSName: !GetAtt [CloudFrontDistribution, DomainName]
+            DNSName: !GetAtt 'CloudFrontDistribution.DomainName'
   HealthCheck:
     Type: 'AWS::Route53::HealthCheck'
     Properties:
@@ -79,7 +79,8 @@ Resources:
             Action: 's3:PutObject'
             Effect: Allow
             Resource: !Sub 'arn:aws:s3:::${WebsiteBucket}/*'
-            Principal: !GetAtt [CodePipelineServiceRole, Arn]
+            Principal:
+              AWS: !GetAtt 'CodePipelineServiceRole.Arn'
   Certificate:
     Type: 'AWS::CertificateManager::Certificate'
     Properties:
@@ -129,85 +130,88 @@ Resources:
             S3OriginConfig:
               OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}'
         PriceClass: 'PriceClass_All'
-  CodePipelineArtifactStoreBucket:
-    Type: 'AWS::S3::Bucket'
-  CodePipelineArtifactStoreBucketPolicy:
-    Type: 'AWS::S3::BucketPolicy'
-    Properties:
-      Bucket: !Ref CodePipelineArtifactStoreBucket
-      PolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Sid: DenyUnEncryptedObjectUploads
-            Effect: Deny
-            Principal: '*'
-            Action: 's3:PutObject'
-            Resource: !Join
-              - ''
-              - - !GetAtt
-                  - CodePipelineArtifactStoreBucket
-                  - Arn
-                - /*
-            Condition:
-              StringNotEquals:
-                's3:x-amz-server-side-encryption': 'aws:kms'
-          - Sid: DenyInsecureConnections
-            Effect: Deny
-            Principal: '*'
-            Action: 's3:*'
-            Resource: !Join
-              - ''
-              - - !GetAtt
-                  - CodePipelineArtifactStoreBucket
-                  - Arn
-                - /*
-            Condition:
-              Bool:
-                'aws:SecureTransport': false
-  AppPipelineWebhook:
-    Type: 'AWS::CodePipeline::Webhook'
-    Properties:
-      Authentication: GITHUB_HMAC
-      AuthenticationConfiguration:
-        SecretToken: '{{resolve:secretsmanager:MyGitHubSecret:SecretString:token}}'
-      Filters:
-        - JsonPath: $.ref
-          MatchEquals: 'refs/heads/{Branch}'
-      TargetPipeline: !Ref AppPipeline
-      TargetAction: SourceAction
-      Name: AppPipelineWebhook
-      TargetPipelineVersion: !GetAtt
-        - AppPipeline
-        - Version
-      RegisterWithThirdParty: true
-  AppPipeline:
-    Type: 'AWS::CodePipeline::Pipeline'
-    Properties:
-      Name: github-events-pipeline
-      RoleArn: !GetAtt
-        - CodePipelineServiceRole
-        - Arn
-      Stages:
-        - Name: Source
-          Actions:
-            - Name: SourceAction
-              ActionTypeId:
-                Category: Source
-                Owner: ThirdParty
-                Version: 1
-                Provider: GitHub
-              OutputArtifacts:
-                - Name: SourceOutput
-              Configuration:
-                Owner: !Ref GitHubOwner
-                Repo: !Ref RepositoryName
-                Branch: master
-                OAuthToken: '{{resolve:secretsmanager:MyGitHubSecret:SecretString:token}}'
-                PollForSourceChanges: false
-              RunOrder: 1
-      ArtifactStore:
-        Type: S3
-        Location: !Ref CodePipelineArtifactStoreBucket
+#  CodePipelineArtifactStoreBucket:
+#    Type: 'AWS::S3::Bucket'
+#  CodePipelineArtifactStoreBucketPolicy:
+#    Type: 'AWS::S3::BucketPolicy'
+#    Properties:
+#      Bucket: !Ref CodePipelineArtifactStoreBucket
+#      PolicyDocument:
+#        Version: 2012-10-17
+#        Statement:
+#          - Sid: DenyUnEncryptedObjectUploads
+#            Effect: Deny
+#            Principal: '*'
+#            Action: 's3:PutObject'
+#            Resource: !Sub '${CodePipelineArtifactStoreBucket.Arn}/*'
+#            Condition:
+#              StringNotEquals:
+#                's3:x-amz-server-side-encryption': 'aws:kms'
+#          - Sid: DenyInsecureConnections
+#            Effect: Deny
+#            Principal: '*'
+#            Action: 's3:*'
+#            Resource: !Sub '${CodePipelineArtifactStoreBucket.Arn}/*'
+#            Condition:
+#              Bool:
+#                'aws:SecureTransport': false
+#  AppPipelineWebhook:
+#    Type: 'AWS::CodePipeline::Webhook'
+#    Properties:
+#      Authentication: GITHUB_HMAC
+#      AuthenticationConfiguration:
+#        SecretToken: '{{resolve:secretsmanager:GitHubSecret}}'
+#      Filters:
+#        - JsonPath: $.ref
+#          MatchEquals: 'refs/heads/{Branch}'
+#      TargetPipeline: !Ref AppPipeline
+#      TargetAction: SourceAction
+#      Name: AppPipelineWebhook
+#      TargetPipelineVersion: !GetAtt 'AppPipeline.Version'
+#      RegisterWithThirdParty: true
+#  AppPipeline:
+#    Type: 'AWS::CodePipeline::Pipeline'
+#    Properties:
+#      Name: github-events-pipeline
+#      RoleArn: !GetAtt 'CodePipelineServiceRole.Arn'
+#      Stages:
+#        - Name: Source
+#          Actions:
+#            - Name: SourceAction
+#              ActionTypeId:
+#                Category: Source
+#                Owner: ThirdParty
+#                Version: 1
+#                Provider: GitHub
+#              OutputArtifacts:
+#                - Name: SourceOutput
+#              Configuration:
+#                Owner: !Ref GitHubOwner
+#                Repo: !Ref RepositoryName
+#                Branch: master
+#                OAuthToken: '{{resolve:secretsmanager:GitHubSecret}}'
+#                PollForSourceChanges: false
+#              RunOrder: 1
+#              - Name: Build
+#                Actions:
+#                  - Name: BuildAction
+#                    ActionTypeId:
+#                      Category: Build
+#                      Owner: AWS
+#                      Version: 1
+#                      Provider: CodeBuild
+#                    OutputArtifacts:
+#                      - Name: SourceOutput
+#                    Configuration:
+#                      Owner: !Ref GitHubOwner
+#                      Repo: !Ref RepositoryName
+#                      Branch: master
+#                      OAuthToken: '{{resolve:secretsmanager:GitHubSecret}}'
+#                      PollForSourceChanges: false
+#                    RunOrder: 2
+#      ArtifactStore:
+#        Type: S3
+#        Location: !Ref CodePipelineArtifactStoreBucket
   CodePipelineServiceRole:
     Type: 'AWS::IAM::Role'
     Properties:
