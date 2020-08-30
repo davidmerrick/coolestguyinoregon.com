@@ -25,7 +25,7 @@ Resources:
             HostedZoneId: Z2FDTNDATAQYW2
             DNSName: !GetAtt [CloudFrontDistribution, DomainName]
   HealthCheck:
-    Type: AWS::Route53::HealthCheck
+    Type: 'AWS::Route53::HealthCheck'
     Properties:
       HealthCheckConfig:
         EnableSNI: true
@@ -33,6 +33,22 @@ Resources:
         Port: 443
         FullyQualifiedDomainName: !Sub 'www.${DomainName}'
         MeasureLatency: true
+  Alarm:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmName: !Sub '${DomainName} health check'
+      AlarmDescription: !Sub '${DomainName} health check alarm'
+      Namespace: 'AWS/Route53'
+      Statistic: Minimum
+      Period: 60
+      Threshold: 1
+      EvaluationPeriods: 1
+      MetricName: 'HealthCheckStatus'
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: missing
+      Dimensions:
+        - Name: 'HealthCheckId'
+          Value: !Ref HealthCheck
   ReadPolicy:
     Type: 'AWS::S3::BucketPolicy'
     Properties:
