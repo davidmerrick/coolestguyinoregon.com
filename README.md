@@ -18,7 +18,6 @@ desired bucket name and certificate ARN as input.
 Manually point your Route 53 hosted zone at the CloudFront distribution.
 
 # Todo
-- Add Route53 config to CloudFormation template
-- Make bucket private, only allow access from CloudFront
+
+- Add redirect from non-www to www url for website
 - Add CloudFormation template for CodePipeline
-- Get bucket permissions in place so CodePipeline can write to it
