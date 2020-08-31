@@ -7,17 +7,6 @@ Parameters:
     Description: Website domain name, without www
     Type: String
     Default: 'coolestguyinoregon.com'
-  RepositoryName:
-    Description: GitHub repository name
-    Type: String
-    Default: coolestguyinoregon.com
-  GitHubOwner:
-    Type: String
-    Default: davidmerrick
-  BranchName:
-    Description: GitHub branch name
-    Type: String
-    Default: master
 Resources:
   WebsiteBucket:
     Type: 'AWS::S3::Bucket'
@@ -155,44 +144,6 @@ Resources:
             Condition:
               Bool:
                 'aws:SecureTransport': false
-#  AppPipelineWebhook:
-#    Type: 'AWS::CodePipeline::Webhook'
-#    Properties:
-#      Authentication: GITHUB_HMAC
-#      AuthenticationConfiguration:
-#        SecretToken: '{{resolve:secretsmanager:GitHubSecret}}'
-#      Filters:
-#        - JsonPath: $.ref
-#          MatchEquals: 'refs/heads/{Branch}'
-#      TargetPipeline: !Ref 'AppPipeline'
-#      TargetAction: SourceAction
-#      Name: AppPipelineWebhook
-#      TargetPipelineVersion: !GetAtt 'AppPipeline.Version'
-#      RegisterWithThirdParty: true
-#  AppPipeline:
-#    Type: 'AWS::CodePipeline::Pipeline'
-#    Properties:
-#      Name: !Ref 'DomainName'
-#      RoleArn: !GetAtt 'CodePipelineServiceRole.Arn'
-#      Stages:
-#        - Name: Source
-#          Actions:
-#            - Name: SourceAction
-#              ActionTypeId:
-#                Category: Source
-#                Owner: ThirdParty
-#                Version: 1
-#                Provider: GitHub
-#              Configuration:
-#                Owner: !Ref GitHubOwner
-#                Repo: !Ref RepositoryName
-#                Branch: master
-#                OAuthToken: '{{resolve:secretsmanager:GitHubSecret}}'
-#                PollForSourceChanges: false
-#              RunOrder: 1
-#      ArtifactStore:
-#        Type: S3
-#        Location: !Ref 'CodePipelineArtifactStoreBucket'
   CodePipelineServiceRole:
     Type: 'AWS::IAM::Role'
     Properties:
