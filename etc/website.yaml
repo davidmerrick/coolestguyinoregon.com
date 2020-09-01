@@ -73,7 +73,12 @@ Resources:
   Certificate:
     Type: 'AWS::CertificateManager::Certificate'
     Properties:
-      DomainName: !Sub '*.${DomainName}'
+      DomainName: !Ref 'DomainName'
+      ValidationMethod: 'DNS'
+  WwwCertificate:
+    Type: 'AWS::CertificateManager::Certificate'
+    Properties:
+      DomainName: !Sub 'www.${DomainName}'
       ValidationMethod: 'DNS'
   CloudFrontOriginAccessIdentity:
     Type: 'AWS::CloudFront::CloudFrontOriginAccessIdentity'
@@ -87,7 +92,7 @@ Resources:
         Aliases:
           - !Sub 'www.${DomainName}'
         ViewerCertificate:
-          AcmCertificateArn: !Ref Certificate
+          AcmCertificateArn: !Ref WwwCertificate
           SslSupportMethod: 'sni-only'
         DefaultCacheBehavior:
           ViewerProtocolPolicy: 'redirect-to-https'
