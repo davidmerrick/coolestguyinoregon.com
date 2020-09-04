@@ -21,3 +21,13 @@ Manually point your Route 53 hosted zone at the CloudFront distribution.
 
 - Add redirect from non-www to www url for website
 - Add CloudFormation template for CodePipeline
+
+# Cloudformation-ing
+
+To create the AWS resources from the template, do the following.
+
+Package the templates:
+`aws cloudformation package --template-file etc/root.yaml --output-template packaged.yaml --s3-bucket merrick-cf-templates-east`
+
+Deploy the templates:
+`aws cloudformation deploy --template-file packaged.yaml --stack-name coolestguyinoregon`

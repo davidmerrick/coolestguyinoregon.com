@@ -15,47 +15,14 @@ Resources:
       WebsiteConfiguration:
         IndexDocument: 'index.html'
         ErrorDocument: 'error.html'
-  RecordSets:
-    Type: 'AWS::Route53::RecordSetGroup'
+  Route53:
+    Type: 'AWS::CloudFormation::Stack'
     Properties:
-      HostedZoneName: !Sub '${DomainName}.'
-      RecordSets:
-        - Name: !Ref DomainName
-          Type: A
-          AliasTarget:
-            # Hosted Zone ID is always Z2FDTNDATAQYW2 for CloudFront
-            HostedZoneId: Z2FDTNDATAQYW2
-            DNSName: !GetAtt 'NonWwwCloudFrontDistribution.DomainName'
-        - Name: !Sub 'www.${DomainName}'
-          Type: A
-          AliasTarget:
-            HostedZoneId: Z2FDTNDATAQYW2
-            DNSName: !GetAtt 'CloudFrontDistribution.DomainName'
-  HealthCheck:
-    Type: 'AWS::Route53::HealthCheck'
-    Properties:
-      HealthCheckConfig:
-        EnableSNI: true
-        Type: HTTPS
-        Port: 443
-        FullyQualifiedDomainName: !Sub 'www.${DomainName}'
-        MeasureLatency: true
-  Alarm:
-    Type: 'AWS::CloudWatch::Alarm'
-    Properties:
-      AlarmName: !Sub '${DomainName} health check'
-      AlarmDescription: !Sub '${DomainName} health check alarm'
-      Namespace: 'AWS/Route53'
-      Statistic: Minimum
-      Period: 60
-      Threshold: 1
-      EvaluationPeriods: 1
-      MetricName: 'HealthCheckStatus'
-      ComparisonOperator: LessThanThreshold
-      TreatMissingData: missing
-      Dimensions:
-        - Name: 'HealthCheckId'
-          Value: !Ref HealthCheck
+      TemplateURL: 'route53.yaml'
+      Parameters:
+        SourceDomainName: !Ref 'DomainName'
+        WwwDistroDomain: !GetAtt 'CloudFrontDistribution.Outputs.DistributionDomainName'
+        NonWwwDistroDomain: !GetAtt 'NonWwwCloudFrontDistribution.DomainName'
   ReadPolicy:
     Type: 'AWS::S3::BucketPolicy'
     Properties:
@@ -90,6 +57,15 @@ Resources:
     Properties:
       CloudFrontOriginAccessIdentityConfig:
         Comment: !Ref WebsiteBucket
+  CloudFrontDistribution:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: 'wwwDistro.yaml'
+      Parameters:
+        BucketUri: !GetAtt 'WebsiteBucket.DomainName'
+        CertArn: !Ref 'WwwCertificate'
+        DomainName: !Ref 'DomainName'
+        OAI: !Ref 'CloudFrontOriginAccessIdentity'
   NonWwwCloudFrontDistribution:
     Type: 'AWS::CloudFront::Distribution'
     Properties:
@@ -129,97 +105,12 @@ Resources:
             S3OriginConfig:
               OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}'
         PriceClass: 'PriceClass_All'
-  CloudFrontDistribution:
-    Type: 'AWS::CloudFront::Distribution'
-    Properties:
-      DistributionConfig:
-        Aliases:
-          - !Sub 'www.${DomainName}'
-        ViewerCertificate:
-          AcmCertificateArn: !Ref WwwCertificate
-          SslSupportMethod: 'sni-only'
-        DefaultCacheBehavior:
-          ViewerProtocolPolicy: 'redirect-to-https'
-          AllowedMethods:
-            - GET
-            - HEAD
-            - OPTIONS
-          CachedMethods:
-            - GET
-            - HEAD
-            - OPTIONS
-          TargetOriginId: s3Origin
-          Compress: true
-          DefaultTTL: 3600
-          ForwardedValues:
-            Cookies:
-              Forward: none
-            QueryString: false
-        Enabled: true
-        CustomErrorResponses:
-          - ErrorCode: 403
-            ResponseCode: 404
-            ResponsePagePath: '/404.html'
-        DefaultRootObject: 'index.html'
-        HttpVersion: http2
-        Origins:
-          - DomainName: !GetAtt 'WebsiteBucket.DomainName'
-            Id: s3Origin # Just needs to be unique within the distribution
-            S3OriginConfig:
-              OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}'
-        PriceClass: 'PriceClass_All'
-  RedirectLambdaRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-                - lambda.amazonaws.com
-                - edgelambda.amazonaws.com
-            Action: sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
   RedirectLambda:
-    Type: 'AWS::Lambda::Function'
+    Type: 'AWS::CloudFormation::Stack'
     Properties:
-      Runtime: 'nodejs12.x'
-      Handler: 'index.handler'
-      Description: !Sub 'Redirect function for ${DomainName}'
-      Role: !GetAtt 'RedirectLambdaRole.Arn'
-      Timeout: 10
-      Environment:
-        Variables:
-          HOST: !Sub 'www.${DomainName}'
-      Code:
-        ZipFile: |
-          'use strict';
-          exports.handler = (event, context, callback) => {
-              // Extract the request from the CloudFront event that is sent to Lambda@Edge
-              var request = event.Records[0].cf.request;
-
-              var params = '';
-              if(('querystring' in request) && (request.querystring.length>0)) {
-                  params = '?'+request.querystring;
-              }
-
-              var miduri = request.uri.replace(/(\/[\w\-_]+)$/, '$1/');
-              var newuri = "https://" + process.env.HOST + miduri + params;
-
-              const response = {
-                  status: '301',
-                  statusDescription: 'Moved Permanently',
-                      headers: {
-                        location: [{
-                            key: 'Location',
-                            value: newuri
-                        }]
-                      }
-                  };
-              return callback(null, response);
-          };
+      TemplateURL: 'redirectLambda.yaml'
+      Parameters:
+        DomainName: !Ref 'DomainName'
   CodePipelineArtifactStoreBucket:
     Type: 'AWS::S3::Bucket'
   CodePipelineArtifactStoreBucketPolicy:
