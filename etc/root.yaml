@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: 2010-09-09
+AWSTemplateFormatVersion: '2010-09-09'
 Description: |
   CloudFormation templates for plumbing coolestguyinoregon.com.
   Includes bucket, CloudFront distribution, and CI/CD pipeline.
@@ -15,14 +15,14 @@ Resources:
       WebsiteConfiguration:
         IndexDocument: 'index.html'
         ErrorDocument: 'error.html'
-  Route53:
-    Type: 'AWS::CloudFormation::Stack'
-    Properties:
-      TemplateURL: 'route53.yaml'
-      Parameters:
-        SourceDomainName: !Ref 'DomainName'
-        WwwDistroDomain: !GetAtt 'CloudFrontDistribution.Outputs.DistributionDomainName'
-        NonWwwDistroDomain: !GetAtt 'NonWwwCloudFrontDistribution.DomainName'
+  #  Route53:
+  #    Type: 'AWS::CloudFormation::Stack'
+  #    Properties:
+  #      TemplateURL: 'route53.yaml'
+  #      Parameters:
+  #        SourceDomainName: !Ref 'DomainName'
+  #        WwwDistroDomain: !GetAtt 'CloudFrontDistribution.Outputs.DistributionDomainName'
+  #        NonWwwDistroDomain: !GetAtt 'NonWwwCloudFrontDistribution.DomainName'
   ReadPolicy:
     Type: 'AWS::S3::BucketPolicy'
     Properties:
@@ -42,16 +42,16 @@ Resources:
             Resource: !Sub 'arn:aws:s3:::${WebsiteBucket}/*'
             Principal:
               AWS: !GetAtt 'CodePipelineServiceRole.Arn'
-  Certificate:
-    Type: 'AWS::CertificateManager::Certificate'
-    Properties:
-      DomainName: !Ref 'DomainName'
-      ValidationMethod: 'DNS'
-  WwwCertificate:
-    Type: 'AWS::CertificateManager::Certificate'
-    Properties:
-      DomainName: !Sub 'www.${DomainName}'
-      ValidationMethod: 'DNS'
+  #  Certificate:
+  #    Type: 'AWS::CertificateManager::Certificate'
+  #    Properties:
+  #      DomainName: !Ref 'DomainName'
+  #      ValidationMethod: 'DNS'
+  #  WwwCertificate:
+  #    Type: 'AWS::CertificateManager::Certificate'
+  #    Properties:
+  #      DomainName: !Sub 'www.${DomainName}'
+  #      ValidationMethod: 'DNS'
   CloudFrontOriginAccessIdentity:
     Type: 'AWS::CloudFront::CloudFrontOriginAccessIdentity'
     Properties:
@@ -63,20 +63,21 @@ Resources:
       TemplateURL: 'wwwDistro.yaml'
       Parameters:
         BucketUri: !GetAtt 'WebsiteBucket.DomainName'
-        CertArn: !Ref 'WwwCertificate'
+        #        CertArn: !Ref 'WwwCertificate'
         DomainName: !Ref 'DomainName'
         OAI: !Ref 'CloudFrontOriginAccessIdentity'
   NonWwwCloudFrontDistribution:
     Type: 'AWS::CloudFront::Distribution'
     Properties:
       DistributionConfig:
-        Aliases:
-          - !Ref DomainName
-        ViewerCertificate:
-          AcmCertificateArn: !Ref Certificate
-          SslSupportMethod: 'sni-only'
+        #        Aliases:
+        #          - !Ref DomainName
+        #        ViewerCertificate:
+        #          AcmCertificateArn: !Ref Certificate
+        #          SslSupportMethod: 'sni-only'
         DefaultCacheBehavior:
-          ViewerProtocolPolicy: 'redirect-to-https'
+          # Todo: Change back to redirect-to-https
+          ViewerProtocolPolicy: 'allow-all'
           AllowedMethods:
             - GET
             - HEAD
@@ -85,14 +86,17 @@ Resources:
             - GET
             - HEAD
             - OPTIONS
-          TargetOriginId: s3Origin
+          TargetOriginId: myOrigin
+          LambdaFunctionAssociations:
+            - EventType: 'viewer-request'
+              LambdaFunctionARN: !GetAtt 'RedirectLambda.Outputs.LambdaArn'
           Compress: true
           DefaultTTL: 3600
           ForwardedValues:
             Cookies:
               Forward: none
             QueryString: false
-        Enabled: false
+        Enabled: true
         CustomErrorResponses:
           - ErrorCode: 403
             ResponseCode: 404
@@ -100,10 +104,12 @@ Resources:
         DefaultRootObject: 'index.html'
         HttpVersion: http2
         Origins:
-          - DomainName: !GetAtt 'WebsiteBucket.DomainName'
-            Id: s3Origin
-            S3OriginConfig:
-              OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}'
+          # Placeholder value. Origin is all handled by Lambda
+          - DomainName: 'aws.amazon.com'
+            Id: myOrigin
+            CustomOriginConfig:
+              HTTPPort: 80
+              OriginProtocolPolicy: 'match-viewer'
         PriceClass: 'PriceClass_All'
   RedirectLambda:
     Type: 'AWS::CloudFormation::Stack'
@@ -206,3 +212,10 @@ Resources:
                   - 'sqs:*'
                   - 'ecs:*'
                 Resource: '*'
+Outputs:
+  WwwDistro:
+    Description: Domain name of www distribution
+    Value: !GetAtt 'CloudFrontDistribution.Outputs.DistributionDomainName'
+  NonWwwDistro:
+    Description: Domain name of non-www distribution
+    Value: !GetAtt 'NonWwwCloudFrontDistribution.DomainName'

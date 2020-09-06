@@ -31,3 +31,7 @@ Package the templates:
 
 Deploy the templates:
 `aws cloudformation deploy --template-file packaged.yaml --stack-name coolestguyinoregon`
+
+# Gotchas
+- Lambda@Edge doesn't allow env vars, so gotta hardcode that domain name.
+- Lambda@Edge has a 5-second limit on timeouts.
