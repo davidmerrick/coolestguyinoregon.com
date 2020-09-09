@@ -3,9 +3,9 @@ Description: |
   CloudFormation templates for a Route53 domain that maps to
   both www and non-www CloudFront distros
 Parameters:
-#  CertArn:
-#    Description: ARN for certificate
-#    Type: String
+  CertArn:
+    Description: ARN for certificate
+    Type: String
   DomainName:
     Description: Domain name
     Type: String
@@ -21,14 +21,13 @@ Resources:
     Type: 'AWS::CloudFront::Distribution'
     Properties:
       DistributionConfig:
-#        Aliases:
-#          - !Sub 'www.${DomainName}'
-#        ViewerCertificate:
-#          AcmCertificateArn: !Ref CertArn
-#          SslSupportMethod: 'sni-only'
+        Aliases:
+          - !Sub 'www.${DomainName}'
+        ViewerCertificate:
+          AcmCertificateArn: !Ref CertArn
+          SslSupportMethod: 'sni-only'
         DefaultCacheBehavior:
-          # Todo: Change back to redirect-to-https
-          ViewerProtocolPolicy: 'allow-all'
+          ViewerProtocolPolicy: 'redirect-to-https'
           AllowedMethods:
             - GET
             - HEAD

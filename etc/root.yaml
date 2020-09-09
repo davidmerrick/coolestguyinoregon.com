@@ -15,14 +15,14 @@ Resources:
       WebsiteConfiguration:
         IndexDocument: 'index.html'
         ErrorDocument: 'error.html'
-  #  Route53:
-  #    Type: 'AWS::CloudFormation::Stack'
-  #    Properties:
-  #      TemplateURL: 'route53.yaml'
-  #      Parameters:
-  #        SourceDomainName: !Ref 'DomainName'
-  #        WwwDistroDomain: !GetAtt 'CloudFrontDistribution.Outputs.DistributionDomainName'
-  #        NonWwwDistroDomain: !GetAtt 'NonWwwCloudFrontDistribution.DomainName'
+  Route53:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: 'route53.yaml'
+      Parameters:
+        SourceDomainName: !Ref 'DomainName'
+        WwwDistroDomain: !GetAtt 'CloudFrontDistribution.Outputs.DistributionDomainName'
+        NonWwwDistroDomain: !GetAtt 'NonWwwCloudFrontDistribution.DomainName'
   ReadPolicy:
     Type: 'AWS::S3::BucketPolicy'
     Properties:
@@ -42,16 +42,16 @@ Resources:
             Resource: !Sub 'arn:aws:s3:::${WebsiteBucket}/*'
             Principal:
               AWS: !GetAtt 'CodePipelineServiceRole.Arn'
-  #  Certificate:
-  #    Type: 'AWS::CertificateManager::Certificate'
-  #    Properties:
-  #      DomainName: !Ref 'DomainName'
-  #      ValidationMethod: 'DNS'
-  #  WwwCertificate:
-  #    Type: 'AWS::CertificateManager::Certificate'
-  #    Properties:
-  #      DomainName: !Sub 'www.${DomainName}'
-  #      ValidationMethod: 'DNS'
+  Certificate:
+    Type: 'AWS::CertificateManager::Certificate'
+    Properties:
+      DomainName: !Ref 'DomainName'
+      ValidationMethod: 'DNS'
+  WwwCertificate:
+    Type: 'AWS::CertificateManager::Certificate'
+    Properties:
+      DomainName: !Sub 'www.${DomainName}'
+      ValidationMethod: 'DNS'
   CloudFrontOriginAccessIdentity:
     Type: 'AWS::CloudFront::CloudFrontOriginAccessIdentity'
     Properties:
@@ -63,21 +63,20 @@ Resources:
       TemplateURL: 'wwwDistro.yaml'
       Parameters:
         BucketUri: !GetAtt 'WebsiteBucket.DomainName'
-        #        CertArn: !Ref 'WwwCertificate'
+        CertArn: !Ref 'WwwCertificate'
         DomainName: !Ref 'DomainName'
         OAI: !Ref 'CloudFrontOriginAccessIdentity'
   NonWwwCloudFrontDistribution:
     Type: 'AWS::CloudFront::Distribution'
     Properties:
       DistributionConfig:
-        #        Aliases:
-        #          - !Ref DomainName
-        #        ViewerCertificate:
-        #          AcmCertificateArn: !Ref Certificate
-        #          SslSupportMethod: 'sni-only'
+        Aliases:
+          - !Ref DomainName
+        ViewerCertificate:
+          AcmCertificateArn: !Ref Certificate
+          SslSupportMethod: 'sni-only'
         DefaultCacheBehavior:
-          # Todo: Change back to redirect-to-https
-          ViewerProtocolPolicy: 'allow-all'
+          ViewerProtocolPolicy: 'redirect-to-https'
           AllowedMethods:
             - GET
             - HEAD
