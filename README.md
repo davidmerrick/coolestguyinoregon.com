@@ -1,28 +1,25 @@
-Prank project I wrote in 2009 to see if I could get a website ranked for "coolest guy in Oregon."
+Source code for https://www.coolestguyinoregon.com.
 
-Currently served from an S3 bucket.
+Fun fact: I'm the first search result on Google for ["coolest guy in Oregon"](https://www.google.com/search?q=coolest+guy+in+oregon) 🙂.
 
-# Process
+# Running locally
 
-How to stand up a static site with CloudFront, S3, and https.
+This is a NodeJS project built with React, which uses [Parcel](https://parceljs.org/) for bundling.
 
-Planning on fully automating this, if possible. For now, there are a couple
-manual steps.
+To install and run it locally, run:
 
-Transfer domain to Route53.
-If you already have a bucket, back up all the files in it and delete it.
-(CloudFormation can't import existing S3 buckets)
-Create a certificate for your domain in the `us-east-1` region.
-Deploy the `etc/website.yaml` CloudFormation template, with your 
-desired bucket name and certificate ARN as input. 
-Manually point your Route 53 hosted zone at the CloudFront distribution.
+* `yarn install`
+* `yarn start`
 
-# Todo
+Then visit http://localhost:1234 in your browser.
 
-- Add redirect from non-www to www url for website
-- Add CloudFormation template for CodePipeline
+# Infrastructure
 
-# Cloudformation-ing
+This site has CloudFormation templates for deployment to AWS. Its infrastructure consists of:
+* S3 bucket
+* Route53 Domain
+* CloudFront distribution for edge caching
+* Lambda@Edge to redirect non-www requests to the www subdomain
 
 To create the AWS resources from the template, do the following.
 
@@ -30,7 +27,7 @@ Package the templates:
 `aws cloudformation package --template-file etc/root.yaml --output-template packaged.yaml --s3-bucket merrick-cf-templates-east`
 
 Deploy the templates:
-`aws cloudformation deploy --template-file packaged.yaml --stack-name coolestguyinoregon`
+`aws cloudformation deploy --template-file packaged.yaml --stack-name coolestguyinamerica`
 
 # Gotchas
 - Lambda@Edge doesn't allow env vars, so gotta hardcode that domain name.

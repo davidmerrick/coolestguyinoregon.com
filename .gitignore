@@ -1,2 +1,5 @@
 .idea/
 packaged.yaml
+node_modules/
+.parcel-cache/
+dist/
