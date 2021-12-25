@@ -15,7 +15,7 @@ class BodyText extends React.Component {
         <br/>
         <br/>
         Subsequently, I realized that <Link href="https://www.coolestguyinamerica.com" target="_blank">www.coolestguyinamerica.com</Link>
-        wasn't taken, either, and also bought that for $10.
+        &nbsp;wasn't taken, either, and also bought that for $10.
         <br/>
         <br/>
         For more on me, check out:

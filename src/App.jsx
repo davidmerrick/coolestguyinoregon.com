@@ -21,7 +21,7 @@ class App extends React.Component {
         </Grid>
         <Grid item xs={12}>
           <Typography variant="h1" align="center">is the</Typography>
-          <Typography variant="h1" align="center">Coolest Guy in America</Typography>
+          <Typography variant="h1" align="center">Coolest Guy in Oregon</Typography>
         </Grid>
         <Grid item xs={12} style={{height: 50}}/>
         <Grid item
